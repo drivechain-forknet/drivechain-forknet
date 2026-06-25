@@ -1019,6 +1019,36 @@ BOOST_AUTO_TEST_CASE(script_PushData)
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_BAD_OPCODE);
 }
 
+BOOST_AUTO_TEST_CASE(script_op_drivechain)
+{
+    ScriptError err;
+
+    // A script of the exact 4 byte form is a drivechain output and pushes 0xDC.
+    static const unsigned char drivechain[] = { OP_DRIVECHAIN, 0x00, 0x00, 0x00 };
+    std::vector<std::vector<unsigned char> > dcStack;
+    BOOST_CHECK(EvalScript(dcStack, CScript(drivechain, drivechain + sizeof(drivechain)), SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), SigVersion::BASE, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+    BOOST_CHECK(dcStack.size() == 1 && dcStack[0] == std::vector<unsigned char>{0xDC});
+
+    // The opcode reuses OP_NOP10, so in any other form it stays a no-op and
+    // must not make the script invalid.
+    const CScript nop = CScript() << OP_1 << OP_NOP10;
+    std::vector<std::vector<unsigned char> > nopStack;
+    BOOST_CHECK(EvalScript(nopStack, nop, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), SigVersion::BASE, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+    BOOST_CHECK(nopStack.size() == 1 && nopStack[0] == std::vector<unsigned char>{0x01});
+
+    // The no-op form is still discouraged as an upgradable nop under policy.
+    std::vector<std::vector<unsigned char> > stack_ignore;
+    BOOST_CHECK(!EvalScript(stack_ignore, nop, SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS, BaseSignatureChecker(), SigVersion::BASE, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
+
+    // A real drivechain output stays valid even with that policy flag set.
+    std::vector<std::vector<unsigned char> > dcStackFlags;
+    BOOST_CHECK(EvalScript(dcStackFlags, CScript(drivechain, drivechain + sizeof(drivechain)), SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS, BaseSignatureChecker(), SigVersion::BASE, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+}
+
 BOOST_AUTO_TEST_CASE(script_cltv_truncated)
 {
     const auto script_cltv_trunc = CScript() << OP_CHECKLOCKTIMEVERIFY;

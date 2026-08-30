@@ -81,6 +81,32 @@ BOOST_AUTO_TEST_CASE(get_next_work_upper_limit_actual)
     BOOST_CHECK(!PermittedDifficultyTransition(chainParams->GetConsensus(), pindexLast.nHeight+1, pindexLast.nBits, invalid_nbits));
 }
 
+/* Test that the Drivechain fork activation difficulty reset is accepted by the
+ * headers-sync anti-DoS check, which cannot express such a large drop with its
+ * bounded retarget band. */
+BOOST_AUTO_TEST_CASE(get_next_work_drivechain_activation)
+{
+    const auto chainParams = CreateChainParams(*m_node.args, ChainType::MAIN);
+    const auto& consensus = chainParams->GetConsensus();
+    const int drivechain_height = consensus.DrivechainHeight;
+    BOOST_REQUIRE(drivechain_height > 0);
+    // The reset only happens on a retarget boundary, where nBits is recalculated.
+    BOOST_REQUIRE_EQUAL(drivechain_height % consensus.DifficultyAdjustmentInterval(), 0);
+
+    int64_t nLastRetargetTime = 1261130161;
+    CBlockIndex pindexLast;
+    pindexLast.nHeight = drivechain_height - 1;
+    pindexLast.nTime = 1262152739;
+    pindexLast.nBits = 0x1a00ffffU; // far above powLimit difficulty
+
+    const unsigned int expected_nbits = UintToArith256(consensus.powLimit).GetCompact();
+    BOOST_CHECK_EQUAL(CalculateNextWorkRequired(&pindexLast, nLastRetargetTime, consensus), expected_nbits);
+    BOOST_CHECK(PermittedDifficultyTransition(consensus, pindexLast.nHeight+1, pindexLast.nBits, expected_nbits));
+    // Any other nbits at the activation height is still rejected.
+    BOOST_CHECK(!PermittedDifficultyTransition(consensus, pindexLast.nHeight+1, pindexLast.nBits, expected_nbits-1));
+    BOOST_CHECK(!PermittedDifficultyTransition(consensus, pindexLast.nHeight+1, pindexLast.nBits, pindexLast.nBits));
+}
+
 BOOST_AUTO_TEST_CASE(CheckProofOfWork_test_negative_target)
 {
     const auto consensus = CreateChainParams(*m_node.args, ChainType::MAIN)->GetConsensus();

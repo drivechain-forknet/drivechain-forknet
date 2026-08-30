@@ -95,6 +95,15 @@ bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t heig
 {
     if (params.fPowAllowMinDifficultyBlocks) return true;
 
+    // At the Drivechain fork activation height consensus mandates a reset to
+    // powLimit (see CalculateNextWorkRequired() and ContextualCheckBlockHeader()),
+    // which the bounded retarget band below cannot express. Pin nBits to that
+    // single legal value instead, so this anti-DoS check cannot reject the
+    // very transition consensus requires.
+    if (params.DrivechainHeight != 0 && height == params.DrivechainHeight) {
+        return new_nbits == UintToArith256(params.powLimit).GetCompact();
+    }
+
     if (height % params.DifficultyAdjustmentInterval() == 0) {
         int64_t smallest_timespan = params.nPowTargetTimespan/4;
         int64_t largest_timespan = params.nPowTargetTimespan*4;

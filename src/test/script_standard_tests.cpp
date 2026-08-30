@@ -144,6 +144,14 @@ BOOST_AUTO_TEST_CASE(script_standard_Solver_success)
     BOOST_CHECK(s.IsWitnessProgram(version, witness_program));
     BOOST_CHECK(CScript::IsPayToAnchor(version, witness_program));
 
+    // TxoutType::DRIVECHAIN
+    s.clear();
+    s << OP_DRIVECHAIN << std::vector<unsigned char>{0x00} << OP_TRUE;
+    BOOST_CHECK_EQUAL(s.size(), 4U);
+    BOOST_CHECK(s.IsDrivechain());
+    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::DRIVECHAIN);
+    BOOST_CHECK(solutions.empty());
+
     // TxoutType::NONSTANDARD
     s.clear();
     s << OP_9 << OP_ADD << OP_11 << OP_EQUAL;
@@ -222,6 +230,18 @@ BOOST_AUTO_TEST_CASE(script_standard_Solver_failure)
     s << OP_1 << std::vector<unsigned char>{0xff, 0xff};
     BOOST_CHECK(!s.IsPayToAnchor());
     BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_UNKNOWN);
+
+    // TxoutType::DRIVECHAIN but wrong script size
+    s.clear();
+    s << OP_DRIVECHAIN << std::vector<unsigned char>{0x00};
+    BOOST_CHECK(!s.IsDrivechain());
+    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
+
+    // TxoutType::DRIVECHAIN but OP_DRIVECHAIN is not the first opcode
+    s.clear();
+    s << OP_TRUE << std::vector<unsigned char>{0x00} << OP_DRIVECHAIN;
+    BOOST_CHECK(!s.IsDrivechain());
+    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
 }
 
 BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)

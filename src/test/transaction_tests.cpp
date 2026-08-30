@@ -1018,6 +1018,12 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     CheckIsStandard(t);
     t.vout[0].nValue = 239;
     CheckIsNotStandard(t, "dust");
+
+    // Check OP_DRIVECHAIN outputs
+    t.vout[0].scriptPubKey = CScript() << OP_DRIVECHAIN << std::vector<unsigned char>{0x00} << OP_TRUE;
+    BOOST_CHECK(t.vout[0].scriptPubKey.IsDrivechain());
+    t.vout[0].nValue = 1000;
+    CheckIsStandard(t);
 }
 
 BOOST_AUTO_TEST_CASE(max_standard_legacy_sigops)

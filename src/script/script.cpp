@@ -245,6 +245,13 @@ bool CScript::IsPayToTaproot() const
             (*this)[1] == 0x20);
 }
 
+bool CScript::IsDrivechain() const
+{
+    // Extra-fast test for OP_DRIVECHAIN CScripts:
+    return (this->size() == 4 &&
+            (*this)[0] == OP_DRIVECHAIN);
+}
+
 // A witness program is any valid CScript that consists of a 1-byte push opcode
 // followed by a data push between 2 and 40 bytes.
 bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program) const

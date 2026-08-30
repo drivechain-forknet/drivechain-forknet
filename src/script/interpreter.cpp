@@ -1217,11 +1217,14 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                 case OP_DRIVECHAIN:
                 {
-                    if (script.size() != 4)
-                        return set_error(serror, SCRIPT_ERR_UNKNOWN_ERROR);
-
-                    if (script[0] != OP_DRIVECHAIN)
-                        return set_error(serror, SCRIPT_ERR_UNKNOWN_ERROR);
+                    // Only the designated Drivechain script form gets the new
+                    // semantics. Anything else keeps the pre-existing OP_NOP5
+                    // upgradable-NOP behaviour, so old scripts stay valid.
+                    if (!script.IsDrivechain()) {
+                        if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS)
+                            return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
+                        break;
+                    }
 
                     stack.push_back(std::vector<unsigned char> {0xDC});
 

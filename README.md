@@ -31,9 +31,10 @@ Config file name: ```drivechain-forknet.conf```
 
 
 ## Ports
-Ports are the same as bitcoin core
+The network port differs from bitcoin core so forknet nodes are not mistaken for
+mainnet bitcoin nodes. The rpc port is the same as bitcoin core.
 ```
-network 8333
+network 8433
 rpc server 8332
 ```
 

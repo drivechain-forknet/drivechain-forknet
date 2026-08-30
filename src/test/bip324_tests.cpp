@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <bip324.h>
-#include <chainparams.h>
+#include <kernel/messagestartchars.h>
 #include <key.h>
 #include <pubkey.h>
 #include <span.h>
@@ -20,6 +20,10 @@
 #include <boost/test/unit_test.hpp>
 
 namespace {
+
+/** The BIP324 packet test vectors are salted with Bitcoin mainnet's message start, which is not
+ *  the message start of any chain of this fork, so it has to be supplied to the cipher directly. */
+constexpr MessageStartChars BITCOIN_MAIN_MESSAGE_START{0xf9, 0xbe, 0xb4, 0xd9};
 
 struct BIP324Test : BasicTestingSetup {
 void TestBIP324PacketVector(
@@ -60,7 +64,7 @@ void TestBIP324PacketVector(
     BIP324Cipher cipher(key, ellswift_ours);
     BOOST_CHECK(!cipher);
     BOOST_CHECK(cipher.GetOurPubKey() == ellswift_ours);
-    cipher.Initialize(ellswift_theirs, in_initiating);
+    cipher.Initialize(ellswift_theirs, in_initiating, /*self_decrypt=*/false, BITCOIN_MAIN_MESSAGE_START);
     BOOST_CHECK(cipher);
 
     // Compare session variables.
@@ -107,7 +111,7 @@ void TestBIP324PacketVector(
         BIP324Cipher dec_cipher(key, ellswift_ours);
         BOOST_CHECK(!dec_cipher);
         BOOST_CHECK(dec_cipher.GetOurPubKey() == ellswift_ours);
-        dec_cipher.Initialize(ellswift_theirs, (error == 1) ^ in_initiating, /*self_decrypt=*/true);
+        dec_cipher.Initialize(ellswift_theirs, (error == 1) ^ in_initiating, /*self_decrypt=*/true, BITCOIN_MAIN_MESSAGE_START);
         BOOST_CHECK(dec_cipher);
 
         // Compare session variables.
@@ -164,9 +168,8 @@ void TestBIP324PacketVector(
 BOOST_FIXTURE_TEST_SUITE(bip324_tests, BIP324Test)
 
 BOOST_AUTO_TEST_CASE(packet_test_vectors) {
-    // BIP324 key derivation uses network magic in the HKDF process. We use mainnet params here
-    // as that is what the test vectors are written for.
-    SelectParams(ChainType::MAIN);
+    // BIP324 key derivation uses network magic in the HKDF process. The vectors below are written
+    // for Bitcoin mainnet's magic, which is passed to Initialize() by TestBIP324PacketVector().
 
     // The test vectors are converted using the following Python code in the BIP bip-0324/ directory:
     //

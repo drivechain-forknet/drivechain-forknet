@@ -88,7 +88,8 @@ TX_MIN_STANDARD_VERSION = 1
 TX_MAX_STANDARD_VERSION = 3
 
 MAGIC_BYTES = {
-    "mainnet": b"\xf9\xbe\xb4\xd9",
+    # derived from the first 4 bytes of the mainnet genesis block hash
+    "mainnet": b"\x67\x5f\x99\x83",
     "testnet4": b"\x1c\x16\x3f\x28",
     "regtest": b"\xfa\xbf\xb5\xda",
     "signet": b"\x0a\x03\xcf\x40",

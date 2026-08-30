@@ -118,16 +118,7 @@ public:
         consensus.nMinimumChainWork = uint256{"0000000000000000000000000000000000000000000000000000000000000000"};
         consensus.defaultAssumeValid = uint256{"0000000000000000000000000000000000000000000000000000000000000000"};
 
-        /**
-         * The message start string is designed to be unlikely to occur in normal data.
-         * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
-         * a large 32-bit integer with any alignment.
-         */
-        pchMessageStart[0] = 0xf9;
-        pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb4;
-        pchMessageStart[3] = 0xd9;
-        nDefaultPort = 8333;
+        nDefaultPort = 8433;
         nPruneAfterHeight = 100000;
         m_assumed_blockchain_size = 1;
         m_assumed_chain_state_size = 1;
@@ -136,6 +127,14 @@ public:
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256{"0000000070375583d87eb23aab7cc2da49921539e3c5afe0e699581783995f67"});
         assert(genesis.hashMerkleRoot == uint256{"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"});
+
+        // This chain has its own genesis block, so it must also have its own P2P
+        // network identity rather than inheriting Bitcoin mainnet's. The message
+        // start is defined as the first 4 bytes of the genesis block hash, which
+        // ties the network identity to the chain itself: it is checked when framing
+        // V1 messages and salts the BIP324 v2 key derivation, so peers on either
+        // side of the fork cannot complete a handshake with each other.
+        std::copy_n(consensus.hashGenesisBlock.begin(), 4, pchMessageStart.begin());
 
         vSeeds.emplace_back("");
 
